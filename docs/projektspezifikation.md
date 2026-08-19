@@ -115,7 +115,7 @@ grafisch dar.
 
 ### 3.3 Architekturdiagramm
 
-![Architektur der Monitoring-Infrastruktur](images/monitoring-architektur.png)
+![Architektur der Monitoring-Infrastruktur](docs/image/monitoring-architektur.png)
 
 Der grundlegende Datenfluss lautet:
 
