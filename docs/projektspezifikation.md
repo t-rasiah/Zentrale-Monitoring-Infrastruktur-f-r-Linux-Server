@@ -270,30 +270,39 @@ Zu jeder Anforderung wird beschrieben:
 
 Nach der Umsetzung werden die Anforderungen mit definierten Tests überprüft.
 
-Die Tests werden aus Sicht eines System Engineers durchgeführt und müssen
-reproduzierbare Ergebnisse liefern.
+Für jeden Test wird festgelegt:
+
+- welches System getestet wird,
+- wie der Test durchgeführt wird,
+- welcher Befehl oder welche Oberfläche verwendet wird,
+- welches konkrete Resultat erwartet wird.
+
+Die angegebenen Ausgaben stellen das erwartete Resultat dar. Einzelne Werte
+wie Antwortzeiten, Prozess-IDs, Speicherwerte oder Zeitstempel können je nach
+Testumgebung abweichen.
 
 ### Testübersicht
 
-| Test-ID | Bezug | Test | Durchführung | Erwartetes Resultat |
-|---|---|---|---|---|
-| T01 | INF-01 | VM-Bereitstellung | Im Projektverzeichnis `vagrant status` ausführen. | `monitoring01`, `server01` und `server02` werden als laufend angezeigt. |
-| T02 | NET-01 | IP-Konfiguration | Auf jeder VM `ip addr` ausführen und die konfigurierte Adresse kontrollieren. | Alle Systeme befinden sich im vorgesehenen Monitoring-Netz. |
-| T03 | NET-02 | Erreichbarkeit `server01` | Von `monitoring01` `ping <IP-server01>` ausführen. | `server01` antwortet auf ICMP-Anfragen. |
-| T04 | NET-02 | Erreichbarkeit `server02` | Von `monitoring01` `ping <IP-server02>` ausführen. | `server02` antwortet auf ICMP-Anfragen. |
-| T05 | MON-01 | Node Exporter Dienst | Auf `server01` und `server02` `systemctl status node_exporter` ausführen. | Der Dienst läuft auf beiden Servern. |
-| T06 | MON-02 | Node Exporter Metriken | Von `monitoring01` den `/metrics`-Endpunkt beider Server mit `curl` auf TCP-Port `9100` aufrufen. | Beide Server liefern Metrikdaten zurück. |
-| T07 | MON-03 | Prometheus Dienst | Auf `monitoring01` `systemctl status prometheus` ausführen. | Prometheus läuft. |
-| T08 | MON-04 | Prometheus Targets | In Prometheus die PromQL-Abfrage `up` ausführen. | `server01` und `server02` besitzen den Wert `1`. |
-| T09 | MON-05 | CPU-Auslastung | Auf `server01` mit `stress --cpu <Anzahl-Worker>` Last erzeugen. | Die CPU-Auslastung steigt im Grafana-Dashboard sichtbar an. |
-| T10 | MON-06 | Arbeitsspeicher | Mit `free -h` Ausgangswert prüfen und anschliessend gezielt RAM mit `stress` belasten. | Die höhere RAM-Nutzung wird in Grafana dargestellt. |
-| T11 | MON-07 | Speicherplatz | Mit `df -h` Ausgangswert erfassen, Testdatei erstellen und Speicherbelegung erneut prüfen. | Die Veränderung ist lokal und in Grafana sichtbar. |
-| T12 | MON-08 | Netzwerkaktivität | Netzwerkverkehr zwischen zwei Systemen erzeugen und gleichzeitig das Dashboard beobachten. | Die Netzwerkaktivität steigt während des Tests sichtbar an. |
-| T13 | MON-09 | Ausfall Node Exporter | Auf `server02` `systemctl stop node_exporter` ausführen und danach PromQL `up` kontrollieren. | Das Target von `server02` wechselt von `1` auf `0`. |
-| T14 | MON-10 | Wiederherstellung | Auf `server02` `systemctl start node_exporter` ausführen. | Das Target wechselt nach erfolgreichem Scrape wieder auf `1`. |
-| T15 | MON-11 | Grafana | Grafana-Dienst prüfen und Weboberfläche über Port `3000` öffnen. | Grafana ist erreichbar und Prometheus als Datenquelle verfügbar. |
-| T16 | MON-12 | Dashboard | Dashboard öffnen und beide Server auswählen beziehungsweise vergleichen. | Die definierten Systemmetriken beider Server sind sichtbar. |
-| T17 | MON-13 | Historische Daten | Nach einem Belastungstest in Grafana einen vergangenen Zeitraum auswählen. | Die zuvor erzeugte Belastung ist weiterhin im Diagramm sichtbar. |
+| Test-ID | Test | Durchführung | Erwartetes Resultat |
+|---|---|---|---|
+| T01 | VM-Bereitstellung | Im Projektverzeichnis auf dem Host `vagrant status` ausführen. | `monitoring01`, `server01` und `server02` werden von Vagrant als `running` angezeigt. |
+| T02 | IP-Konfiguration | Auf jeder Debian-VM `ip addr` ausführen. | Auf jedem System wird die konfigurierte IPv4-Adresse des Monitoring-Netzes am vorgesehenen Netzwerkinterface angezeigt. `monitoring01`, `server01` und `server02` besitzen jeweils eine unterschiedliche Adresse im gleichen Subnetz. |
+| T03 | Erreichbarkeit `server01` | Auf `monitoring01` `ping <IP-server01>` ausführen. | Die Ausgabe enthält Antworten von `<IP-server01>` mit einer Antwortzeit in `ms`. In der Ping-Statistik werden empfangene Pakete und `0% packet loss` erwartet. |
+| T04 | Erreichbarkeit `server02` | Auf `monitoring01` `ping <IP-server02>` ausführen. | Die Ausgabe enthält Antworten von `<IP-server02>` mit einer Antwortzeit in `ms`. In der Ping-Statistik werden empfangene Pakete und `0% packet loss` erwartet. |
+| T05 | Node Exporter Dienst | Auf `server01` und `server02` `systemctl status node_exporter` ausführen. | Auf beiden Servern wird der Dienst mit dem Zustand `active (running)` angezeigt. |
+| T06 | Node Exporter Metriken | Von `monitoring01` den Endpunkt `http://<IP-server01>:9100/metrics` und danach den Endpunkt von `server02` mit `curl` aufrufen. | Beide HTTP-Aufrufe liefern eine Liste von Prometheus-Metriken zurück. In der Ausgabe sind Node-Exporter-Metriken mit dem Präfix `node_` vorhanden. Es wird kein `Connection refused` oder Timeout erwartet. |
+| T07 | Prometheus Dienst | Auf `monitoring01` `systemctl status prometheus` ausführen. | Der Prometheus-Dienst wird mit dem Zustand `active (running)` angezeigt. |
+| T08 | Prometheus Targets | In der Prometheus-Weboberfläche beziehungsweise über PromQL die Abfrage `up` ausführen. | Für die Node-Exporter-Targets von `server01:9100` und `server02:9100` wird jeweils der Wert `1` zurückgegeben. Beide Targets werden von Prometheus erfolgreich abgefragt. |
+| T09 | CPU-Monitoring | Auf `server01` mit `stress --cpu <Anzahl-Worker>` gezielt CPU-Last erzeugen. Gleichzeitig das CPU-Dashboard in Grafana beobachten. | Während `stress` läuft, steigt die CPU-Auslastung von `server01` im Grafana-Dashboard deutlich gegenüber dem Ausgangswert an. Nach Beendigung des Prozesses fällt die Auslastung wieder in Richtung des ursprünglichen Wertes. |
+| T10 | RAM-Monitoring | Auf `server01` zuerst `free -h` ausführen. Anschliessend mit `stress --vm <Anzahl-Worker> --vm-bytes <Speichermenge>` Arbeitsspeicher belegen. | `free -h` zeigt während des Tests einen höheren belegten beziehungsweise niedrigeren verfügbaren Arbeitsspeicher. Im Grafana-Dashboard ist im gleichen Zeitraum eine entsprechende Veränderung der RAM-Auslastung sichtbar. |
+| T11 | Speicherplatz-Monitoring | Auf `server02` mit `df -h` die aktuelle Belegung erfassen. Anschliessend eine Testdatei definierter Grösse erstellen und `df -h` erneut ausführen. | Nach dem Erstellen der Testdatei zeigt `df -h` auf dem betroffenen Dateisystem einen höheren Wert unter `Used` beziehungsweise einen niedrigeren Wert unter `Avail`. Dieselbe Veränderung ist zeitlich passend in Grafana sichtbar. |
+| T12 | Netzwerk-Monitoring | Auf dem zu testenden Server mit `ip link` beziehungsweise `ip addr` das verwendete Interface bestimmen. Anschliessend gezielt Netzwerkverkehr zwischen zwei VMs erzeugen. | Während des Tests steigen die übertragenen beziehungsweise empfangenen Bytes auf dem verwendeten Netzwerkinterface. Im Grafana-Dashboard ist im gleichen Zeitraum ein Anstieg des ein- oder ausgehenden Netzwerkverkehrs sichtbar. |
+| T13 | Ausfall Node Exporter | Zuerst in Prometheus `up` prüfen. Danach auf `server02` `systemctl stop node_exporter` ausführen und nach dem nächsten Scrape erneut `up` abfragen. | Vor dem Stoppen liefert `up` für `server02:9100` den Wert `1`. `systemctl status node_exporter` zeigt danach einen nicht laufenden Dienst. Nach dem nächsten Prometheus-Scrape liefert `up` für `server02:9100` den Wert `0`. |
+| T14 | Wiederherstellung Node Exporter | Auf `server02` `systemctl start node_exporter` ausführen. Anschliessend Dienststatus und Prometheus `up` erneut kontrollieren. | `systemctl status node_exporter` zeigt wieder `active (running)`. Nach dem nächsten erfolgreichen Scrape wechselt `up` für `server02:9100` von `0` zurück auf `1`. |
+| T15 | Grafana Dienst | Auf `monitoring01` `systemctl status grafana-server` ausführen und anschliessend `http://<IP-monitoring01>:3000` im Browser öffnen. | Der Dienst wird als `active (running)` angezeigt. Die Grafana-Weboberfläche ist über TCP-Port `3000` erreichbar und wird im Browser geladen. |
+| T16 | Prometheus als Grafana-Datenquelle | In Grafana die konfigurierte Prometheus-Datenquelle prüfen beziehungsweise die Verbindung testen. | Grafana kann eine Verbindung zu Prometheus aufbauen. Der Verbindungstest der Datenquelle ist erfolgreich und Prometheus-Daten können von Grafana abgefragt werden. |
+| T17 | Grafana Dashboard | Das zentrale Monitoring-Dashboard öffnen und `server01` sowie `server02` kontrollieren. | Für beide Systeme werden CPU, RAM, Speicherplatz und Netzwerkmetriken dargestellt. Die angezeigten Daten entsprechen den von Prometheus erfassten Systemen. |
+| T18 | Historische Daten | Auf `server01` einen CPU-Belastungstest durchführen, diesen beenden und anschliessend in Grafana einen Zeitraum auswählen, der vor, während und nach dem Test liegt. | Im historischen Diagramm ist der Ausgangswert vor dem Test, der Anstieg während der CPU-Belastung und der Rückgang nach Beendigung der Belastung weiterhin sichtbar. |
 
 ---
 
