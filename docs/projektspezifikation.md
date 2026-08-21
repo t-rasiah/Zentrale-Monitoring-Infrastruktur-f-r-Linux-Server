@@ -4,7 +4,6 @@
 | Information | Wert |
 |---|---|
 | Modul | Netzwerkbetriebssysteme |
-| Projekt | Zentrale Monitoring-Infrastruktur für Linux-Server |
 | Betriebssystem | Debian Linux |
 | Virtualisierung | Oracle VirtualBox |
 | VM-Bereitstellung | Vagrant |
@@ -16,213 +15,34 @@
 
 ## 1. Idee und Lernziel
 
-Beim Betrieb mehrerer Linux-Server ist es wichtig, deren Zustand zentral
-überwachen zu können. Ohne ein zentrales Monitoring müssen die Systeme
-einzeln kontrolliert werden und Probleme oder Ausfälle werden möglicherweise
-erst spät erkannt.
+In diesem Projekt wird eine zentrale Monitoring-Infrastruktur für mehrere
+Debian-Server aufgebaut.
 
-In diesem Projekt wird deshalb eine zentrale Monitoring-Infrastruktur für
-mehrere Debian-Server aufgebaut.
+Ziel ist es zu erarbeiten, wie Systemmetriken mehrerer Linux-Server
+automatisch erfasst, zentral gespeichert und grafisch dargestellt werden.
 
-Dabei soll erarbeitet werden, wie Systemmetriken von mehreren Linux-Servern
-automatisch erfasst, zentral gespeichert und übersichtlich dargestellt
-werden können.
+Das Projekt umfasst drei Bereiche:
 
-Das Projekt besteht aus drei grundlegenden Bereichen:
+- **Collect** – Systemmetriken mit Node Exporter erfassen
+- **Save** – Messwerte mit Prometheus sammeln und speichern
+- **Display** – Messwerte mit Grafana darstellen
 
-- **Collect** – Systemdaten erfassen
-- **Save** – Messwerte zentral speichern
-- **Display** – Messwerte grafisch darstellen
-
-Für die Umsetzung werden folgende Komponenten eingesetzt:
-
-- **Node Exporter** zur Bereitstellung der Systemmetriken
-- **Prometheus** zum Sammeln und Speichern der Metriken
-- **Grafana** zur grafischen Darstellung der Metriken
-- **Vagrant** zur Bereitstellung der virtuellen Maschinen
-- **Oracle VirtualBox** als Virtualisierungsplattform
-
-Ziel ist eine einfache und nachvollziehbare Monitoring-Umgebung, welche
-reproduzierbar aufgebaut und mit definierten Tests überprüft werden kann.
+Die Testumgebung wird mit **Vagrant** reproduzierbar erstellt und auf
+**Oracle VirtualBox** betrieben.
 
 ---
 
 ## 2. Projektziel
 
-Ziel des Projekts ist der Aufbau einer zentralen Monitoring-Infrastruktur
-für mehrere Debian-Server.
-
-Die Umgebung besteht aus:
-
-- einem zentralen Monitoring-Server `monitoring01`
-- einem überwachten Debian-Server `server01`
-- einem überwachten Debian-Server `server02`
-
-Die drei Systeme werden als virtuelle Maschinen mit Vagrant definiert und
-auf Oracle VirtualBox betrieben.
-
-Auf `server01` und `server02` wird Node Exporter eingesetzt. Dieser stellt
-die Systemmetriken der beiden Server über das Netzwerk bereit.
-
-Auf `monitoring01` werden Prometheus und Grafana betrieben.
-
-Prometheus fragt die Metriken der beiden Node Exporter regelmässig ab und
-speichert diese als Zeitreihendaten.
-
-Grafana verwendet Prometheus als Datenquelle und stellt die gesammelten
-Messwerte in einem zentralen Dashboard dar.
-
-Mindestens folgende Informationen werden überwacht:
-
-- CPU-Auslastung
-- Arbeitsspeicher
-- Speicherplatz
-- Netzwerkaktivität
-- Erreichbarkeit der Systeme
-
-Neben den aktuellen Messwerten müssen auch historische Messwerte betrachtet
-werden können.
-
----
-
-## 3. Architektur
-
-### 3.1 Systeme
-
-Die Testumgebung besteht aus drei Debian-VMs.
-
-| System | Hostname | Geplante IP-Adresse | Funktion | Komponenten |
-|---|---|---|---|---|
-| Monitoring-Server | `monitoring01` | `192.168.50.10` | Zentrales Monitoring | Prometheus, Grafana |
-| Debian Server 1 | `server01` | `192.168.50.21` | Überwachtes System | Node Exporter |
-| Debian Server 2 | `server02` | `192.168.50.22` | Überwachtes System | Node Exporter |
-
-**Monitoring-Netz:** `192.168.50.0/24`
-
-Die angegebenen IP-Adressen stellen die geplante Konfiguration dar.
-Falls bei der Umsetzung Änderungen notwendig sind, werden die tatsächlich
-verwendeten IP-Adressen in der Projektdokumentation ergänzt.
-
-In den nachfolgenden Tests werden Platzhalter wie `<IP-server01>` verwendet.
-Damit ist jeweils die tatsächlich konfigurierte IP-Adresse des entsprechenden
-Systems gemeint.
-
----
-
-### 3.2 Virtualisierung
-
-Als Virtualisierungsplattform wird **Oracle VirtualBox** verwendet.
-
-Die virtuellen Maschinen werden mit **Vagrant** definiert und bereitgestellt.
-
-Das Vagrantfile definiert mindestens:
-
-- Anzahl der virtuellen Maschinen
-- Hostnamen
-- Debian als Betriebssystem
-- Netzwerkparameter
-- IP-Adressen
-
-Dadurch soll die Testumgebung reproduzierbar erstellt werden können.
-
-Die grundlegende Bereitstellung erfolgt nach folgendem Prinzip:
-
-`Vagrant → Oracle VirtualBox → Debian VMs → Monitoring`
-
----
-
-### 3.3 Monitoring
-
-Auf `server01` und `server02` wird Node Exporter betrieben.
-
-Node Exporter stellt die Systemmetriken über TCP-Port `9100` bereit.
-
-Prometheus wird auf `monitoring01` betrieben und fragt die Node-Exporter-
-Endpunkte regelmässig über HTTP ab.
-
-Prometheus übernimmt innerhalb des Projekts:
-
-- **Collect** – Metriken von den Servern abrufen
-- **Save** – Metriken als Zeitreihendaten speichern
-
-Grafana wird ebenfalls auf `monitoring01` betrieben.
-
-Grafana verwendet Prometheus als Datenquelle und übernimmt:
-
-- **Display** – Messwerte in Dashboards und Diagrammen darstellen
-
-Der grundlegende Datenfluss lautet:
-
-`Debian Server → Node Exporter → Prometheus → Grafana → Benutzer`
-
----
-
-### 3.4 Architekturdiagramm
-
-![Architektur der Monitoring-Infrastruktur](image/monitoring-architektur.png)
-
----
-
-### 3.5 Verwendete Dienste und Ports
-
-| Komponente | System | Port / Protokoll | Verwendung |
-|---|---|---|---|
-| Grafana | `monitoring01` | TCP 3000 | Weboberfläche |
-| Prometheus | `monitoring01` | TCP 9090 | Weboberfläche und API |
-| Node Exporter | `server01` | TCP 9100 | Bereitstellung der Systemmetriken |
-| Node Exporter | `server02` | TCP 9100 | Bereitstellung der Systemmetriken |
-| ICMP | Alle Systeme | ICMP | Prüfung der Erreichbarkeit |
-
----
-
-## 4. Funktionsweise
-
-### 4.1 Node Exporter
-
-Node Exporter läuft auf den zu überwachenden Debian-Servern `server01`
-und `server02`.
-
-Der Dienst stellt die Systemmetriken des jeweiligen Servers über den
-HTTP-Endpunkt `/metrics` auf TCP-Port `9100` bereit.
-
-Node Exporter liefert unter anderem Informationen über:
-
-- CPU
-- Arbeitsspeicher
-- Dateisystem
-- Netzwerk
-- Systemzustand
-
----
-
-### 4.2 Prometheus
-
-Prometheus läuft auf `monitoring01`.
-
-Die Node Exporter von `server01` und `server02` werden in Prometheus als
-Targets definiert.
-
-Prometheus fragt die Metriken regelmässig über HTTP ab und speichert sie
-als Zeitreihendaten.
-
-Die Erreichbarkeit eines konfigurierten Targets kann in Prometheus über
-die Metrik beziehungsweise PromQL-Abfrage `up` kontrolliert werden.
-
-Ein Wert von:
-
-- `1` bedeutet, dass das Target erfolgreich abgefragt werden konnte.
-- `0` bedeutet, dass das Target nicht erfolgreich abgefragt werden konnte.
-
----
-
-### 4.3 Grafana
-
-Grafana läuft auf `monitoring01` und verwendet Prometheus als Datenquelle.
-
-Über die Grafana-Weboberfläche werden die wichtigsten Messwerte von
-`server01` und `server02` in einem zentralen Dashboard dargestellt.
-
-Das Dashboard zeigt mindestens:
+Die Umgebung besteht aus einem zentralen Monitoring-Server und zwei
+überwachten Debian-Servern.
+
+Auf `server01` und `server02` stellt Node Exporter die Systemmetriken bereit.
+Prometheus auf `monitoring01` sammelt und speichert diese Daten.
+Grafana verwendet Prometheus als Datenquelle und stellt die Messwerte
+zentral dar.
+
+Überwacht werden mindestens:
 
 - CPU-Auslastung
 - Arbeitsspeicher
@@ -230,152 +50,170 @@ Das Dashboard zeigt mindestens:
 - Netzwerkaktivität
 - Erreichbarkeit
 
-Zusätzlich müssen historische Messwerte betrachtet werden können.
+Zusätzlich müssen historische Messwerte betrachtet und Ausfälle der
+überwachten Systeme erkannt werden können.
 
 ---
 
-## 5. Messbare Anforderungen und Verifikation
+## 3. Architektur
 
-Die folgenden Anforderungen definieren die technischen Ziele des Projekts.
+### 3.1 Systeme
 
-Zu jeder Anforderung wird beschrieben:
-
-- was umgesetzt werden muss,
-- wie die Umsetzung geprüft wird,
-- welche Befehle beziehungsweise Prüfmethoden verwendet werden,
-- wann die Anforderung als erfüllt gilt.
-
-| ID | Anforderung | Umsetzung | Verifikation / Befehl | Erfolgskriterium |
+| System | Hostname | IP-Adresse | Funktion | Komponenten |
 |---|---|---|---|---|
-| INF-01 | Virtuelle Maschinen bereitstellen | `monitoring01`, `server01` und `server02` werden mit Vagrant definiert und auf Oracle VirtualBox betrieben. | Status der VMs mit `vagrant status` kontrollieren. | Alle drei VMs werden als laufend angezeigt. |
-| NET-01 | IP-Konfiguration | Alle drei Systeme erhalten eine statische IP-Adresse im privaten Monitoring-Netz. | Auf jeder VM die Netzwerkkonfiguration mit `ip addr` kontrollieren. | Jede VM besitzt die vorgesehene IP-Adresse im Monitoring-Netz. |
-| NET-02 | Netzwerkverbindung | `monitoring01` muss beide überwachten Server über das Monitoring-Netz erreichen können. | Von `monitoring01`: `ping <IP-server01>` und `ping <IP-server02>`. | Beide Server beantworten die ICMP-Anfragen. |
-| MON-01 | Node Exporter | Auf `server01` und `server02` wird Node Exporter als Dienst betrieben. | Auf beiden Servern `systemctl status node_exporter` prüfen. | Node Exporter läuft auf beiden Systemen. |
-| MON-02 | Metrik-Endpunkt | Node Exporter stellt seine Metriken über TCP-Port `9100` und `/metrics` bereit. | Von `monitoring01`: `curl http://<IP-server01>:9100/metrics` und entsprechend für `server02`. | Beide Endpunkte sind erreichbar und liefern Metriken zurück. |
-| MON-03 | Prometheus | Prometheus wird auf `monitoring01` betrieben und überwacht beide Node Exporter. | `systemctl status prometheus` sowie die konfigurierten Targets in Prometheus kontrollieren. | Prometheus läuft und beide Server sind als Targets vorhanden. |
-| MON-04 | Prometheus Targets | Prometheus muss die Metriken von `server01` und `server02` erfolgreich abrufen können. | In Prometheus die PromQL-Abfrage `up` ausführen. | Beide Node-Exporter-Targets liefern den Wert `1`. |
-| MON-05 | CPU-Monitoring | Die CPU-Metriken beider Server werden erfasst und in Grafana dargestellt. | Auf einem überwachten Server mit `stress --cpu <Anzahl-Worker>` CPU-Last erzeugen und Grafana beobachten. | Während des Tests steigt die dargestellte CPU-Auslastung deutlich an und sinkt danach wieder. |
-| MON-06 | RAM-Monitoring | Die Arbeitsspeichernutzung beider Server wird erfasst und dargestellt. | Ausgangswert mit `free -h` kontrollieren und anschliessend mit `stress --vm <Anzahl-Worker> --vm-bytes <Speichermenge>` Arbeitsspeicher belasten. | Die erhöhte RAM-Nutzung ist auf dem Server und in Grafana sichtbar. |
-| MON-07 | Speicher-Monitoring | Die Belegung der Dateisysteme wird durch Node Exporter erfasst. | Vor und nach dem Erstellen einer Testdatei die Speicherbelegung mit `df -h` vergleichen. | Die Veränderung der Speicherbelegung ist auch in Grafana sichtbar. |
-| MON-08 | Netzwerk-Monitoring | Ein- und ausgehender Netzwerkverkehr wird erfasst. | Netzwerkschnittstellen mit `ip link` kontrollieren und anschliessend gezielt Netzwerkverkehr zwischen den Systemen erzeugen. | Während des Tests ist eine Veränderung der Netzwerkaktivität in Grafana sichtbar. |
-| MON-09 | Ausfallerkennung | Prometheus muss erkennen, wenn Node Exporter auf einem überwachten Server nicht mehr erreichbar ist. | Zuerst PromQL `up` kontrollieren. Danach auf `server02` mit `systemctl stop node_exporter` den Dienst stoppen und `up` erneut prüfen. | Der Wert für `server02` wechselt nach dem nächsten Scrape von `1` auf `0`. |
-| MON-10 | Wiederherstellung | Ein zuvor ausgefallenes Target muss nach der Wiederherstellung wieder automatisch erkannt werden. | Node Exporter auf `server02` mit `systemctl start node_exporter` starten und PromQL `up` erneut prüfen. | Der Wert für `server02` wechselt wieder von `0` auf `1`. |
-| MON-11 | Grafana | Grafana wird auf `monitoring01` betrieben und verwendet Prometheus als Datenquelle. | `systemctl status grafana-server` kontrollieren und `http://<IP-monitoring01>:3000` im Browser öffnen. | Grafana ist erreichbar und Prometheus steht als Datenquelle zur Verfügung. |
-| MON-12 | Dashboard | Ein zentrales Grafana-Dashboard stellt die Metriken beider Server dar. | Dashboard öffnen und die Messwerte von `server01` und `server02` kontrollieren. | CPU, RAM, Speicherplatz, Netzwerkaktivität und Erreichbarkeit beider Systeme werden dargestellt. |
-| MON-13 | Historische Daten | Prometheus speichert die erfassten Metriken über einen Zeitraum. | Einen Belastungstest durchführen und danach in Grafana einen Zeitraum auswählen, der den Test enthält. | Die während des Tests erzeugten Veränderungen sind nach Beendigung weiterhin sichtbar. |
+| Monitoring-Server | `monitoring01` | `192.168.50.10` | Zentrales Monitoring | Prometheus, Grafana |
+| Debian Server 1 | `server01` | `192.168.50.21` | Überwachtes System | Node Exporter |
+| Debian Server 2 | `server02` | `192.168.50.22` | Überwachtes System | Node Exporter |
 
----
+**Monitoring-Netz:** `192.168.50.0/24`
 
-## 6. Test und Verifikation
+Die IP-Adressen sind für die Testumgebung vorgesehen und werden bei
+Änderungen in der Projektdokumentation aktualisiert.
 
-Nach der Umsetzung werden die Anforderungen mit definierten Tests überprüft.
+In Tests bezeichnet `<IP-server01>` beziehungsweise `<IP-server02>` die
+tatsächlich konfigurierte IP-Adresse des jeweiligen Systems.
 
-Für jeden Test wird festgelegt:
+### 3.2 Virtualisierung
 
-- welches System getestet wird,
-- wie der Test durchgeführt wird,
-- welcher Befehl oder welche Oberfläche verwendet wird,
-- welches konkrete Resultat erwartet wird.
+Die drei Debian-VMs werden mit **Vagrant** definiert und auf
+**Oracle VirtualBox** betrieben.
 
-Die angegebenen Ausgaben stellen das erwartete Resultat dar. Einzelne Werte
-wie Antwortzeiten, Prozess-IDs, Speicherwerte oder Zeitstempel können je nach
-Testumgebung abweichen.
+Das Vagrantfile definiert mindestens:
 
-### Testübersicht
+- virtuelle Maschinen
+- Hostnamen
+- Betriebssystem
+- Netzwerk
+- IP-Adressen
 
-| Test-ID | Test | Durchführung | Erwartetes Resultat |
+Damit kann die Testumgebung reproduzierbar bereitgestellt werden.
+
+`Vagrant → VirtualBox → Debian VMs`
+
+### 3.3 Monitoring
+
+Node Exporter stellt auf `server01` und `server02` die Systemmetriken über
+TCP-Port `9100` bereit.
+
+Prometheus auf `monitoring01` fragt diese Metriken regelmässig ab und
+speichert sie als Zeitreihendaten.
+
+Grafana greift auf Prometheus zu und stellt die Daten in einem zentralen
+Dashboard dar.
+
+**Datenfluss:**
+
+`Node Exporter → Prometheus → Grafana → Benutzer`
+
+### 3.4 Architekturdiagramm
+
+![Architektur der Monitoring-Infrastruktur](image/monitoring-architektur.png)
+
+### 3.5 Dienste und Ports
+
+| Komponente | System | Port / Protokoll | Funktion |
 |---|---|---|---|
-| T01 | VM-Bereitstellung | Im Projektverzeichnis auf dem Host `vagrant status` ausführen. | `monitoring01`, `server01` und `server02` werden von Vagrant als `running` angezeigt. |
-| T02 | IP-Konfiguration | Auf jeder Debian-VM `ip addr` ausführen. | Auf jedem System wird die konfigurierte IPv4-Adresse des Monitoring-Netzes am vorgesehenen Netzwerkinterface angezeigt. `monitoring01`, `server01` und `server02` besitzen jeweils eine unterschiedliche Adresse im gleichen Subnetz. |
-| T03 | Erreichbarkeit `server01` | Auf `monitoring01` `ping <IP-server01>` ausführen. | Die Ausgabe enthält Antworten von `<IP-server01>` mit einer Antwortzeit in `ms`. In der Ping-Statistik werden empfangene Pakete und `0% packet loss` erwartet. |
-| T04 | Erreichbarkeit `server02` | Auf `monitoring01` `ping <IP-server02>` ausführen. | Die Ausgabe enthält Antworten von `<IP-server02>` mit einer Antwortzeit in `ms`. In der Ping-Statistik werden empfangene Pakete und `0% packet loss` erwartet. |
-| T05 | Node Exporter Dienst | Auf `server01` und `server02` `systemctl status node_exporter` ausführen. | Auf beiden Servern wird der Dienst mit dem Zustand `active (running)` angezeigt. |
-| T06 | Node Exporter Metriken | Von `monitoring01` den Endpunkt `http://<IP-server01>:9100/metrics` und danach den Endpunkt von `server02` mit `curl` aufrufen. | Beide HTTP-Aufrufe liefern eine Liste von Prometheus-Metriken zurück. In der Ausgabe sind Node-Exporter-Metriken mit dem Präfix `node_` vorhanden. Es wird kein `Connection refused` oder Timeout erwartet. |
-| T07 | Prometheus Dienst | Auf `monitoring01` `systemctl status prometheus` ausführen. | Der Prometheus-Dienst wird mit dem Zustand `active (running)` angezeigt. |
-| T08 | Prometheus Targets | In der Prometheus-Weboberfläche beziehungsweise über PromQL die Abfrage `up` ausführen. | Für die Node-Exporter-Targets von `server01:9100` und `server02:9100` wird jeweils der Wert `1` zurückgegeben. Beide Targets werden von Prometheus erfolgreich abgefragt. |
-| T09 | CPU-Monitoring | Auf `server01` mit `stress --cpu <Anzahl-Worker>` gezielt CPU-Last erzeugen. Gleichzeitig das CPU-Dashboard in Grafana beobachten. | Während `stress` läuft, steigt die CPU-Auslastung von `server01` im Grafana-Dashboard deutlich gegenüber dem Ausgangswert an. Nach Beendigung des Prozesses fällt die Auslastung wieder in Richtung des ursprünglichen Wertes. |
-| T10 | RAM-Monitoring | Auf `server01` zuerst `free -h` ausführen. Anschliessend mit `stress --vm <Anzahl-Worker> --vm-bytes <Speichermenge>` Arbeitsspeicher belegen. | `free -h` zeigt während des Tests einen höheren belegten beziehungsweise niedrigeren verfügbaren Arbeitsspeicher. Im Grafana-Dashboard ist im gleichen Zeitraum eine entsprechende Veränderung der RAM-Auslastung sichtbar. |
-| T11 | Speicherplatz-Monitoring | Auf `server02` mit `df -h` die aktuelle Belegung erfassen. Anschliessend eine Testdatei definierter Grösse erstellen und `df -h` erneut ausführen. | Nach dem Erstellen der Testdatei zeigt `df -h` auf dem betroffenen Dateisystem einen höheren Wert unter `Used` beziehungsweise einen niedrigeren Wert unter `Avail`. Dieselbe Veränderung ist zeitlich passend in Grafana sichtbar. |
-| T12 | Netzwerk-Monitoring | Auf dem zu testenden Server mit `ip link` beziehungsweise `ip addr` das verwendete Interface bestimmen. Anschliessend gezielt Netzwerkverkehr zwischen zwei VMs erzeugen. | Während des Tests steigen die übertragenen beziehungsweise empfangenen Bytes auf dem verwendeten Netzwerkinterface. Im Grafana-Dashboard ist im gleichen Zeitraum ein Anstieg des ein- oder ausgehenden Netzwerkverkehrs sichtbar. |
-| T13 | Ausfall Node Exporter | Zuerst in Prometheus `up` prüfen. Danach auf `server02` `systemctl stop node_exporter` ausführen und nach dem nächsten Scrape erneut `up` abfragen. | Vor dem Stoppen liefert `up` für `server02:9100` den Wert `1`. `systemctl status node_exporter` zeigt danach einen nicht laufenden Dienst. Nach dem nächsten Prometheus-Scrape liefert `up` für `server02:9100` den Wert `0`. |
-| T14 | Wiederherstellung Node Exporter | Auf `server02` `systemctl start node_exporter` ausführen. Anschliessend Dienststatus und Prometheus `up` erneut kontrollieren. | `systemctl status node_exporter` zeigt wieder `active (running)`. Nach dem nächsten erfolgreichen Scrape wechselt `up` für `server02:9100` von `0` zurück auf `1`. |
-| T15 | Grafana Dienst | Auf `monitoring01` `systemctl status grafana-server` ausführen und anschliessend `http://<IP-monitoring01>:3000` im Browser öffnen. | Der Dienst wird als `active (running)` angezeigt. Die Grafana-Weboberfläche ist über TCP-Port `3000` erreichbar und wird im Browser geladen. |
-| T16 | Prometheus als Grafana-Datenquelle | In Grafana die konfigurierte Prometheus-Datenquelle prüfen beziehungsweise die Verbindung testen. | Grafana kann eine Verbindung zu Prometheus aufbauen. Der Verbindungstest der Datenquelle ist erfolgreich und Prometheus-Daten können von Grafana abgefragt werden. |
-| T17 | Grafana Dashboard | Das zentrale Monitoring-Dashboard öffnen und `server01` sowie `server02` kontrollieren. | Für beide Systeme werden CPU, RAM, Speicherplatz und Netzwerkmetriken dargestellt. Die angezeigten Daten entsprechen den von Prometheus erfassten Systemen. |
-| T18 | Historische Daten | Auf `server01` einen CPU-Belastungstest durchführen, diesen beenden und anschliessend in Grafana einen Zeitraum auswählen, der vor, während und nach dem Test liegt. | Im historischen Diagramm ist der Ausgangswert vor dem Test, der Anstieg während der CPU-Belastung und der Rückgang nach Beendigung der Belastung weiterhin sichtbar. |
+| Grafana | `monitoring01` | TCP 3000 | Weboberfläche |
+| Prometheus | `monitoring01` | TCP 9090 | Monitoring / Weboberfläche |
+| Node Exporter | `server01`, `server02` | TCP 9100 | Systemmetriken |
+| ICMP | Alle Systeme | ICMP | Erreichbarkeit |
 
 ---
 
-## 7. Erfolgskriterien
+## 4. Messbare Anforderungen
 
-Das Projekt gilt als erfolgreich umgesetzt, wenn alle wesentlichen
-Anforderungen erfüllt und durch die definierten Tests nachgewiesen werden.
-
-Insbesondere müssen folgende Punkte erfüllt sein:
-
-- Drei Debian-VMs können über Vagrant bereitgestellt werden.
-- Die VMs werden auf Oracle VirtualBox betrieben.
-- Alle Systeme können über das Monitoring-Netz kommunizieren.
-- `server01` und `server02` stellen über Node Exporter Metriken bereit.
-- Prometheus kann beide Node Exporter erfolgreich abfragen.
-- Beide Targets werden im Normalbetrieb als `UP` erkannt.
-- CPU-Auslastung wird erfasst und dargestellt.
-- Arbeitsspeichernutzung wird erfasst und dargestellt.
-- Speicherplatzbelegung wird erfasst und dargestellt.
-- Netzwerkaktivität wird erfasst und dargestellt.
-- Der Ausfall eines überwachten Targets wird erkannt.
-- Die Wiederherstellung eines Targets wird erkannt.
-- Grafana stellt die Messwerte beider Server zentral dar.
-- Historische Messwerte können betrachtet werden.
+| ID | Anforderung | Umsetzung | Verifikation | Erfolgskriterium |
+|---|---|---|---|---|
+| INF-01 | VM-Bereitstellung | Drei Debian-VMs mit Vagrant auf VirtualBox bereitstellen. | `vagrant status` | Alle VMs sind `running`. |
+| NET-01 | IP-Konfiguration | Statische IP-Adressen im Monitoring-Netz konfigurieren. | `ip addr` | Jede VM besitzt die vorgesehene IP-Adresse. |
+| NET-02 | Erreichbarkeit | `monitoring01` erreicht beide überwachten Server. | `ping <IP-server01>` / `ping <IP-server02>` | Beide Server antworten ohne Paketverlust. |
+| MON-01 | Node Exporter | Node Exporter auf `server01` und `server02` betreiben. | `systemctl status node_exporter` | Dienst ist `active (running)`. |
+| MON-02 | Metriken | Node Exporter stellt `/metrics` auf TCP 9100 bereit. | `curl http://<IP-Server>:9100/metrics` | Metriken mit Präfix `node_` werden ausgegeben. |
+| MON-03 | Prometheus | Prometheus sammelt die Metriken beider Server. | PromQL `up` | Beide Targets liefern `1`. |
+| MON-04 | CPU | CPU-Auslastung erfassen und darstellen. | CPU-Last mit `stress --cpu <Worker>` erzeugen. | Lastanstieg ist in Grafana sichtbar. |
+| MON-05 | RAM | Arbeitsspeicher erfassen und darstellen. | `free -h` und RAM-Last mit `stress --vm ...`. | RAM-Auslastung verändert sich in Grafana. |
+| MON-06 | Speicher | Dateisystembelegung überwachen. | `df -h` vor/nach Erstellen einer Testdatei. | Veränderung ist in Grafana sichtbar. |
+| MON-07 | Netzwerk | Netzwerkaktivität erfassen. | Netzwerkverkehr zwischen den VMs erzeugen. | Traffic-Anstieg ist in Grafana sichtbar. |
+| MON-08 | Ausfall | Ausfall eines Targets erkennen. | `systemctl stop node_exporter`, danach PromQL `up`. | Target wechselt von `1` auf `0`. |
+| MON-09 | Wiederherstellung | Wiederhergestelltes Target erkennen. | `systemctl start node_exporter`, danach PromQL `up`. | Target wechselt von `0` auf `1`. |
+| MON-10 | Grafana | Zentrales Dashboard bereitstellen. | Grafana über `http://<IP-monitoring01>:3000` aufrufen. | Dashboard zeigt die definierten Metriken beider Server. |
+| MON-11 | Historische Daten | Messwerte über einen Zeitraum speichern. | Belastung erzeugen und vergangenen Zeitraum in Grafana öffnen. | Frühere Messwerte bleiben sichtbar. |
 
 ---
 
-## 8. Abgrenzung
+## 5. Test und Verifikation
 
-Das Projekt konzentriert sich bewusst auf eine einfache und nachvollziehbare
-Monitoring-Infrastruktur.
+Die Anforderungen werden nach der Umsetzung mit definierten Tests überprüft.
+Variable Werte wie Antwortzeiten oder Speicherwerte dürfen von der
+Testumgebung abhängig sein.
+
+| ID | Test | Durchführung | Erwartetes Resultat |
+|---|---|---|---|
+| T01 | VMs | Auf dem Host `vagrant status` ausführen. | `monitoring01`, `server01` und `server02` sind `running`. |
+| T02 | Netzwerk | Auf allen VMs `ip addr` prüfen. | Jede VM besitzt die definierte IPv4-Adresse im Monitoring-Netz. |
+| T03 | Erreichbarkeit | Von `monitoring01` beide Server mit `ping <IP-Server>` prüfen. | Antworten von beiden Servern, `0% packet loss`. |
+| T04 | Node Exporter | Auf beiden Servern `systemctl status node_exporter` ausführen. | Status: `active (running)`. |
+| T05 | Metriken | Von `monitoring01` `curl http://<IP-Server>:9100/metrics` ausführen. | HTTP-Antwort enthält Metriken mit Präfix `node_`. |
+| T06 | Prometheus | Auf `monitoring01` `systemctl status prometheus` prüfen. | Status: `active (running)`. |
+| T07 | Targets | In Prometheus die Abfrage `up` ausführen. | `server01:9100 = 1` und `server02:9100 = 1`. |
+| T08 | CPU | Auf `server01` mit `stress --cpu <Worker>` Last erzeugen. | CPU-Auslastung steigt in Grafana und fällt danach wieder. |
+| T09 | RAM | `free -h` prüfen und mit `stress --vm ...` RAM belasten. | Höhere RAM-Nutzung ist lokal und in Grafana sichtbar. |
+| T10 | Speicher | `df -h` prüfen, Testdatei erstellen und erneut prüfen. | `Used` steigt bzw. `Avail` sinkt; Änderung ist in Grafana sichtbar. |
+| T11 | Netzwerk | Netzwerkverkehr zwischen den VMs erzeugen. | Ein- oder ausgehender Traffic steigt in Grafana sichtbar an. |
+| T12 | Ausfall | Auf `server02` `systemctl stop node_exporter`, danach PromQL `up`. | `server02:9100` wechselt von `1` auf `0`. |
+| T13 | Wiederherstellung | `systemctl start node_exporter`, danach PromQL `up`. | Dienst ist `active (running)` und Target wieder `1`. |
+| T14 | Grafana | `systemctl status grafana-server` prüfen und Weboberfläche öffnen. | Status: `active (running)`; Weboberfläche auf TCP 3000 erreichbar. |
+| T15 | Dashboard | Dashboard für beide Server öffnen. | CPU, RAM, Speicher und Netzwerk beider Server werden dargestellt. |
+| T16 | Historie | Nach einem Belastungstest vergangenen Zeitraum öffnen. | Belastung ist weiterhin in den historischen Messwerten sichtbar. |
+
+---
+
+## 6. Erfolgskriterien
+
+Das Projekt gilt als erfolgreich, wenn:
+
+- drei Debian-VMs reproduzierbar mit Vagrant bereitgestellt werden,
+- `server01` und `server02` über Node Exporter Metriken liefern,
+- Prometheus beide Targets erfolgreich überwacht,
+- CPU, RAM, Speicher und Netzwerk in Grafana dargestellt werden,
+- Ausfall und Wiederherstellung eines Targets erkannt werden,
+- historische Messwerte verfügbar sind,
+- die definierten Tests erfolgreich durchgeführt werden.
+
+---
+
+## 7. Abgrenzung
 
 Nicht Bestandteil des Projekts sind:
 
-- Hochverfügbarkeit des Monitoring-Servers
-- verteilte Prometheus-Instanzen
+- Hochverfügbarkeit
 - Windows-Monitoring
-- Monitoring von Switches und Routern
+- Monitoring von Netzwerkgeräten
 - externe Langzeitarchivierung
-- InfluxDB oder weitere Zeitreihen-Datenbanken
+- weitere Zeitreihen-Datenbanken
 - automatische Fehlerbehebung
 - komplexe Benutzer- und Rechteverwaltung
-- produktiver Betrieb ausserhalb der Testumgebung
+- produktiver Betrieb
 
-Der Schwerpunkt liegt auf der reproduzierbaren Bereitstellung der
-Debian-Testumgebung mit **Vagrant und Oracle VirtualBox** und der zentralen
-Überwachung mit **Node Exporter, Prometheus und Grafana**.
+Der Fokus liegt auf einer reproduzierbaren Debian-Testumgebung mit
+**Vagrant und VirtualBox** sowie dem Monitoring mit
+**Node Exporter, Prometheus und Grafana**.
 
 ---
 
-## 9. Weiterführung der Dokumentation
+## 8. Weiterführung der Dokumentation
 
-Dieses Dokument beschreibt die geplante technische Umsetzung des Projekts.
+Diese Spezifikation beschreibt den geplanten Soll-Zustand.
 
-Die Projektdokumentation wird während und nach der praktischen Umsetzung
-ergänzt. Dabei wird dokumentiert, ob die geplante Architektur tatsächlich
-wie spezifiziert umgesetzt werden konnte.
+Nach der Umsetzung wird die Dokumentation ergänzt um:
 
-Folgende Inhalte werden nach der Umsetzung ergänzt:
+- finale IP- und VM-Konfiguration
+- Vagrantfile
+- Node-Exporter-, Prometheus- und Grafana-Konfiguration
+- Dashboard und Screenshots
+- Testresultate
+- Abweichungen und Probleme
+- Fazit
 
-- tatsächlich verwendete IP-Adressen
-- finales Vagrantfile
-- tatsächliche VM-Konfiguration
-- Konfiguration von Node Exporter
-- Prometheus-Konfiguration
-- Grafana-Konfiguration
-- Grafana-Dashboard
-- Screenshots der Monitoring-Oberfläche
-- durchgeführte Tests
-- Testergebnisse
-- Abweichungen von der Spezifikation
-- aufgetretene Probleme und deren Lösungen
-- Fazit und Erkenntnisse
-
-Die in Kapitel 5 und 6 definierten Anforderungen und Tests bilden dabei
-die Grundlage für die spätere Abnahme des Projekts.
+Die definierten Anforderungen und Tests dienen als Grundlage für die
+Abnahme des Projekts.
